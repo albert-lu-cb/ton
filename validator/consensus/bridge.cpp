@@ -200,6 +200,7 @@ class BridgeImpl final : public IValidatorGroup {
   }
 
   void start_up() override {
+    LOG(ERROR) << "this is " << params_.session_id;
     manager_facade_ = td::actor::create_actor<ManagerFacadeImpl>(params_.name + ".ManagerFacade", params_.manager,
                                                                  params_.collation_manager, params_.validator_set,
                                                                  params_.validator_opts);

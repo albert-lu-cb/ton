@@ -2384,7 +2384,8 @@ void ValidatorManagerImpl::update_shards() {
           }
         }
 
-        VLOG(VALIDATOR_DEBUG) << "validating group " << val_group_id;
+        LOG(ERROR) << "validating group " << val_group_id << " " << shard << " " << val_set->get_validator_set_hash()
+                   << " " << opts_hash << " " << key_seqno;
         auto it = validator_groups_.find(val_group_id);
         if (it != validator_groups_.end()) {
           new_validator_groups_.emplace(val_group_id, std::move(it->second));
@@ -2421,6 +2422,10 @@ void ValidatorManagerImpl::update_shards() {
     auto validator_id = get_validator(shard, val_set);
     if (!validator_id.is_zero()) {
       auto val_group_id = get_validator_set_id(shard, val_set, opts_hash, key_seqno, opts);
+
+      LOG(ERROR) << "precreating group " << val_group_id << " " << shard << " " << val_set->get_validator_set_hash()
+                 << " " << opts_hash << " " << key_seqno;
+
       auto it = next_validator_groups_.find(val_group_id);
       if (it != next_validator_groups_.end()) {
         //CHECK(!it->second.empty());

@@ -167,6 +167,7 @@ class BridgeImpl final : public IValidatorGroup {
   }
 
   virtual void start(std::vector<BlockIdExt> prev, BlockIdExt min_masterchain_block_id) override {
+    ensure_started();
     CHECK(!is_start_called_);
     is_start_called_ = true;
     start_event_ = std::make_shared<Start>(prev, min_masterchain_block_id);
@@ -174,6 +175,7 @@ class BridgeImpl final : public IValidatorGroup {
   }
 
   virtual void create_session() override {
+    ensure_started();
     CHECK(!is_create_session_called_);
     is_create_session_called_ = true;
     maybe_start_group();
@@ -200,6 +202,11 @@ class BridgeImpl final : public IValidatorGroup {
   }
 
   void start_up() override {
+  }
+  void ensure_started() {
+    if (!manager_facade_.empty()) {
+      return;
+    }
     manager_facade_ = td::actor::create_actor<ManagerFacadeImpl>(params_.name + ".ManagerFacade", params_.manager,
                                                                  params_.collation_manager, params_.validator_set,
                                                                  params_.validator_opts);

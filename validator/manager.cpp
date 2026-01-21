@@ -2164,8 +2164,15 @@ void ValidatorManagerImpl::new_masterchain_block() {
   }
 
   for (const auto &[_, validator_group] : validator_groups_) {
+    if (validator_group.actor.empty()) {
+      LOG(ERROR) << "validator_group.actor.empty() in manager.cpp";
+      continue;
+    }
     auto shard_config = last_masterchain_state_->get_shard_from_config(validator_group.shard);
     if (!shard_config.is_null()) {
+      if(validator_group.actor.empty()) {
+        LOG(ERROR) << "notify_mc_finalized to empty validator_group in manager.cpp";
+      }
       td::actor::send_closure(validator_group.actor, &IValidatorGroup::notify_mc_finalized,
                               shard_config->top_block_id());
     }
@@ -2197,6 +2204,9 @@ void ValidatorManagerImpl::new_masterchain_block() {
   }
   for (auto &[_, actor] : shard_block_retainers_) {
     td::actor::send_closure(actor, &ShardBlockRetainer::update_masterchain_state, last_masterchain_state_);
+  }
+  if (ext_message_pool_.empty()) {
+     LOG(ERROR) << "updating last state in empty ext message pool in manager.cpp";
   }
   td::actor::send_closure(ext_message_pool_, &ExtMessagePool::update_last_masterchain_state, last_masterchain_state_);
   if (last_masterchain_seqno_ % 1024 == 0) {
@@ -2330,6 +2340,9 @@ void ValidatorManagerImpl::update_shards() {
 
         auto it = validator_groups_.find(legacy_val_group_id);
         if (it != validator_groups_.end()) {
+          if (it->second.actor.empty()) {
+            LOG(ERROR) << "upgrade validators groups to empty in manager.cpp";
+          }
           new_validator_groups_.emplace(val_group_id, std::move(it->second));
         } else {
           auto it2 = next_validator_groups_.find(legacy_val_group_id);
@@ -2387,6 +2400,9 @@ void ValidatorManagerImpl::update_shards() {
         VLOG(VALIDATOR_DEBUG) << "validating group " << val_group_id;
         auto it = validator_groups_.find(val_group_id);
         if (it != validator_groups_.end()) {
+          if (it->second.actor.empty()) {
+            LOG(ERROR) << "upgrade validators groups to empty 2 in manager.cpp";
+          }
           new_validator_groups_.emplace(val_group_id, std::move(it->second));
         } else {
           auto it2 = next_validator_groups_.find(val_group_id);
@@ -2424,6 +2440,9 @@ void ValidatorManagerImpl::update_shards() {
       auto it = next_validator_groups_.find(val_group_id);
       if (it != next_validator_groups_.end()) {
         //CHECK(!it->second.empty());
+        if (it->second.actor.empty()) {
+            LOG(ERROR) << "upgrade validators groups 3 to empty in manager.cpp";
+        }
         new_next_validator_groups_.emplace(val_group_id, std::move(it->second));
       } else {
         new_next_validator_groups_.emplace(
@@ -3378,10 +3397,16 @@ void ValidatorManagerImpl::update_options(td::Ref<ValidatorManagerOptions> opts)
     td::actor::send_closure(queue_size_counter_, &QueueSizeCounter::update_options, opts);
   }
   for (auto &group : validator_groups_) {
+    if (group.second.actor.empty()) {
+      LOG(ERROR) << "update_options for groups in manager.cpp";
+    }
     td::actor::send_closure(group.second.actor, &IValidatorGroup::update_options, opts,
                             opts->need_monitor(group.second.shard, last_masterchain_state_));
   }
   for (auto &group : next_validator_groups_) {
+    if (group.second.actor.empty()) {
+      LOG(ERROR) << "update_options for next groups in manager.cpp";
+    }
     td::actor::send_closure(group.second.actor, &IValidatorGroup::update_options, opts,
                             opts->need_monitor(group.second.shard, last_masterchain_state_));
   }
@@ -3393,6 +3418,9 @@ void ValidatorManagerImpl::update_options(td::Ref<ValidatorManagerOptions> opts)
   }
   if (!shard_block_verifier_.empty()) {
     td::actor::send_closure(shard_block_verifier_, &ShardBlockVerifier::update_options, opts);
+  }
+    if (ext_message_pool_.empty()) {
+     LOG(ERROR) << "updating options in empty ext message pool in manager.cpp";
   }
   td::actor::send_closure(ext_message_pool_, &ExtMessagePool::update_options, opts);
   opts_ = std::move(opts);
